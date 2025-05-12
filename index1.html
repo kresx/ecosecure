@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSecure Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        body.light-theme {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        header {
+            background: #1e293b;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+        header.light-theme {
+            background: #e2e8f0;
+            color: #333;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #22c55e;
+        }
+        header.light-theme .logo {
+            color: #16a34a;
+        }
+        nav a {
+            color: white;
+            margin: 0 1rem;
+            text-decoration: none;
+            opacity: 0.8;
+        }
+        header.light-theme nav a {
+            color: #4b5563;
+        }
+        nav a:hover {
+            opacity: 1;
+        }
+        .container {
+            padding: 2rem;
+        }
+        .panel {
+            background: #1e293b;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .panel.light-theme {
+            background: #e2e8f0;
+            color: #333;
+            border: 1px solid #cbd5e1;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        select, button, .slider-container {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            border: none;
+            font-weight: bold;
+            background-color: #334155;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        select.light-theme, button.light-theme {
+            background-color: #f9fafb;
+            color: #333;
+            border: 1px solid #d1d5db;
+        }
+        button:hover, select:hover {
+            background-color: #475569;
+        }
+        button.light-theme:hover, select.light-theme:hover {
+            background-color: #e5e7eb;
+        }
+        .chart-container {
+            background: #1e293b;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .chart-container.light-theme {
+            background: #e2e8f0;
+            color: #333;
+            border: 1px solid #cbd5e1;
+        }
+        .alert {
+            color: #f87171;
+            font-weight: bold;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: rgba(248, 113, 113, 0.1);
+            border-radius: 0.5rem;
+        }
+        .alert.light-theme {
+            background-color: rgba(254, 226, 226, 0.5);
+            color: #dc2626;
+        }
+        #reports {
+            display: none;
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #475569;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .report-table th.light-theme, .report-table td.light-theme {
+            border-color: #d1d5db;
+        }
+        .severity-low { color: #a7f3d0; }
+        .severity-medium { color: #facc15; }
+        .severity-high { color: #f87171; }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 0.5rem;
+            background: #475569;
+            border-radius: 0.25rem;
+            outline: none;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+        .slider.light-theme {
+            background: #d1d5db;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            background: #22c55e;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .slider.light-theme::-webkit-slider-thumb {
+            background: #16a34a;
+        }
+        .slider::-moz-range-thumb {
+            width: 1rem;
+            height: 1rem;
+            background: #22c55e;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+        .slider.light-theme::-moz-range-thumb {
+            background: #16a34a;
+        }
+        .theme-toggle {
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        header .user {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">EcoSecure</div>
+        <nav>
+            <a href="#" onclick="showDashboard()">Dashboard</a>
+            <a href="#" onclick="showReports()">Reports</a>
+        </nav>
+        <div class="user">
+            admin <span class="theme-toggle" onclick="toggleTheme()">☀️</span>
+        </div>
+    </header>
+
+    <div class="container" id="dashboard">
+        <div class="controls">
+            <label>Simulated Attack:</label>
+            <select id="attackType">
+                <option>DDoS</option>
+                <option>Port Scan</option>
+                <option>Brute Force</option>
+                <option>Malware</option>
+                <option>Web Exploit</option>
+            </select>
+            <button onclick="initiateSimulation()">Initiate</button>
+            <button id="pauseResumeBtn" onclick="pauseResumeSimulation()">Pause</button>
+            <div class="slider-container">
+                <label for="simulationSpeed">Speed:</label>
+                <input type="range" id="simulationSpeed" class="slider" min="500" max="5000" value="1500" onchange="updateSimulationSpeed()">
+            </div>
+        </div>
+        <div class="panel">IP Address Under Attack: <strong id="ip">192.168.1.100</strong></div>
+        <div class="panel">Anomaly Score: <strong id="score">0.87</strong></div>
+        <div class="panel">Detection Type: <strong id="detection">DDoS Attack</strong> (<span id="severity">High</span>)</div>
+        <div class="alert" id="alertMessage">High severity DDoS attack detected from IP 192.168.1.100</div>
+        <div class="dashboard-grid">
+            <div class="chart-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="reports">
+        <h2>Simulation Reports</h2>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Attack Type</th>
+                    <th>IP Address</th>
+                    <th>Severity</th>
+                </tr>
+            </thead>
+            <tbody id="reportList"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const attacks = ["DDoS", "Port Scan", "Brute Force", "Malware", "Web Exploit"];
+        const severityLevels = ["Low", "Medium", "High"];
+        const attackDescriptions = {
+            "DDoS": "A distributed denial-of-service attack floods a target with malicious traffic.",
+            "Port Scan": "An attempt to discover open ports on a target system.",
+            "Brute Force": "Repeatedly trying different passwords or keys to gain unauthorized access.",
+            "Malware": "Malicious software designed to harm or disrupt a system.",
+            "Web Exploit": "Taking advantage of vulnerabilities in web applications."
+        };
+
+        const chartData = {
+            DDoS: 120,
+            "Port Scan": 115,
+            "Brute Force": 155,
+            Malware: 100,
+            Other: 50
+                };
+
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        const pieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(chartData),
+                datasets: [{
+                    data: Object.values(chartData),
+                    backgroundColor: ['#22c55e', '#60a5fa', '#facc15', '#f87171', '#a78bfa']
+                }]
+            }
+        });
+
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        const lineChart = new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 12}, (_, i) => `T${i+1}`),
+                datasets: [{
+                    label: 'Anomaly Score',
+                    data: Array.from({length: 12}, () => Math.random() * 0.7 + 0.3), // Simulate scores between 0.3 and 1.0
+                    borderColor: '#22c55e',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1
+                    }
+                }
+            }
+        });
+
+        let simulationInterval;
+        let isPaused = false;
+        let simulationSpeed = 1500;
+
+        function initiateSimulation() {
+            const type = document.getElementById('attackType').value;
+            const ip = `192.168.1.${Math.floor(Math.random() * 100 + 1)}`;
+            const score = (Math.random() * 0.7 + 0.3).toFixed(2);
+            const severity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
+            document.getElementById('ip').innerText = ip;
+            document.getElementById('score').innerText = score;
+            document.getElementById('detection').innerText = `${type} Attack`;
+            document.getElementById('severity').className = `severity-${severity.toLowerCase()}`;
+            document.getElementById('severity').innerText = severity;
+            document.getElementById('alertMessage').innerText = `${severity} severity ${type} attack detected from IP ${ip}. ${attackDescriptions[type] || ''}`;
+            addReportEntry(type, ip, severity, score);
+
+            
+            lineChart.data.labels.shift();
+            lineChart.data.labels.push(`T${lineChart.data.labels.length + 1}`);
+            lineChart.data.datasets[0].data.shift();
+            lineChart.data.datasets[0].data.push(parseFloat(score));
+            lineChart.update();
+        }
+
+        function addReportEntry(type, ip, severity, score) {
+            const list = document.getElementById('reportList');
+            const row = list.insertRow(0);
+            const timestampCell = row.insertCell();
+            const typeCell = row.insertCell();
+            const ipCell = row.insertCell();
+            const severityCell = row.insertCell();
+
+            timestampCell.innerText = new Date().toLocaleTimeString();
+            typeCell.innerText = type;
+            ipCell.innerText = ip;
+            severityCell.innerText = severity;
+            severityCell.className = `severity-${severity.toLowerCase()}`;
+        }
+
+        function startSimulation() {
+            if (!simulationInterval) {
+                simulationInterval = setInterval(() => {
+                    const randomAttack = attacks[Math.floor(Math.random() * attacks.length)];
+                    document.getElementById('attackType').value = randomAttack;
+                    initiateSimulation();
+                }, simulationSpeed);
+                document.getElementById('pauseResumeBtn').innerText = "Pause";
+                isPaused = false;
+            }
+        }
+
+        function pauseResumeSimulation() {
+            if (!isPaused) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                document.getElementById('pauseResumeBtn').innerText = "Resume";
+                isPaused = true;
+            } else {
+                startSimulation();
+            }
+        }
+
+        function updateSimulationSpeed() {
+            simulationSpeed = parseInt(document.getElementById('simulationSpeed').value);
+            if (!isPaused) {
+                clearInterval(simulationInterval);
+                startSimulation();
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('reports').style.display = 'none';
+        }
+
+        function showReports() {
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('reports').style.display = 'block';
+        }
+
+        let isLightTheme = false;
+        const body = document.body;
+        const headerElement = document.querySelector('header');
+        const panelElements = document.querySelectorAll('.panel');
+        const chartContainerElements = document.querySelectorAll('.chart-container');
+        const selectElement = document.getElementById('attackType');
+        const buttons = document.querySelectorAll('button');
+        const alertElement = document.getElementById('alertMessage');
+        const reportTableElements = document.querySelectorAll('.report-table th, .report-table td');
+        const sliderElement = document.querySelector('.slider');
+
+        function toggleTheme() {
+            isLightTheme = !isLightTheme;
+            body.classList.toggle('light-theme');
+            headerElement.classList.toggle('light-theme');
+            panelElements.forEach(el => el.classList.toggle('light-theme'));
+            chartContainerElements.forEach(el => el.classList.toggle('light-theme'));
+            selectElement.classList.toggle('light-theme');
+            buttons.forEach(el => el.classList.toggle('light-theme'));
+            alertElement.classList.toggle('light-theme');
+            reportTableElements.forEach(el => el.classList.toggle('light-theme'));
+            if (sliderElement) sliderElement.classList.toggle('light-theme');
+
+            const themeIcon = document.querySelector('.theme-toggle');
+            themeIcon.innerText = isLightTheme ? '🌑' : '☀️';
+        }
+
+        startSimulation();
+    </script>
+</body>
+</html>
